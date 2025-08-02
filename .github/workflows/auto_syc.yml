@@ -25,9 +25,7 @@ jobs:
           git remote add upstream https://github.com/librespot-org/librespot.git
           git fetch upstream
 
-          # Neither forget the -b opt,
-          # the feature/x ref is ambiguous at this stage
-          git checkout -b dev_ci origin/dev_ci
+          git checkout dev_ci || git checkout -b dev_ci origin/dev_ci
           git merge --no-edit upstream/dev
           git push origin dev_ci
 
