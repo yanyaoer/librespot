@@ -124,7 +124,7 @@ impl HttpClient {
         );
 
         let user_agent = HeaderValue::from_str(user_agent_str).unwrap_or_else(|err| {
-            error!("Invalid user agent <{}>: {}", user_agent_str, err);
+            error!("Invalid user agent <{user_agent_str}>: {err}");
             HeaderValue::from_static(FALLBACK_USER_AGENT)
         });
 
@@ -145,6 +145,11 @@ impl HttpClient {
 
     fn try_create_hyper_client(proxy_url: Option<&Url>) -> Result<HyperClient, Error> {
         // configuring TLS is expensive and should be done once per process
+        let _ = rustls::crypto::aws_lc_rs::default_provider()
+            .install_default()
+            .map_err(|e| {
+                Error::internal(format!("unable to install default crypto provider: {e:?}"))
+            });
 
         // On supported platforms, use native roots
         #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
@@ -176,7 +181,7 @@ impl HttpClient {
     }
 
     pub async fn request(&self, req: Request<Bytes>) -> Result<Response<Incoming>, Error> {
-        debug!("Requesting {}", req.uri().to_string());
+        debug!("Requesting {}", req.uri());
 
         // `Request` does not implement `Clone` because its `Body` may be a single-shot stream.
         // As correct as that may be technically, we now need all this boilerplate to clone it
