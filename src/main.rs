@@ -283,6 +283,7 @@ async fn get_setup() -> Setup {
     const ZEROCONF_PORT: &str = "zeroconf-port";
     const ZEROCONF_INTERFACE: &str = "zeroconf-interface";
     const ZEROCONF_BACKEND: &str = "zeroconf-backend";
+    const LOCAL_FILE_DIR: &str = "local-file-dir";
 
     // Mostly arbitrary.
     const AP_PORT_SHORT: &str = "a";
@@ -335,6 +336,7 @@ async fn get_setup() -> Setup {
     const NORMALISATION_THRESHOLD_SHORT: &str = "Z";
     const ZEROCONF_PORT_SHORT: &str = "z";
     const ZEROCONF_BACKEND_SHORT: &str = ""; // no short flag
+    const LOCAL_FILE_DIR_SHORT: &str = "l";
 
     // Options that have different descriptions
     // depending on what backends were enabled at build time.
@@ -660,6 +662,11 @@ async fn get_setup() -> Setup {
         ZEROCONF_BACKEND,
         "Zeroconf (MDNS/DNS-SD) backend to use. Valid values are 'avahi', 'dns-sd' and 'libmdns', if librespot is compiled with the corresponding feature flags.",
         "BACKEND"
+    ).optmulti(
+        LOCAL_FILE_DIR_SHORT,
+        LOCAL_FILE_DIR,
+        "Directory to search for local file playback. Can be specified multiple times to add multiple search directories",
+        "DIRECTORY"
     );
 
     #[cfg(feature = "passthrough-decoder")]
@@ -1380,6 +1387,12 @@ async fn get_setup() -> Setup {
         })
     });
 
+    let local_file_directories = matches
+        .opt_strs(LOCAL_FILE_DIR)
+        .into_iter()
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+
     let connect_config = {
         let connect_default_config = ConnectConfig::default();
 
@@ -1511,6 +1524,7 @@ async fn get_setup() -> Setup {
         let name = name.unwrap_or(connect_default_config.name);
         let device_type = device_type.unwrap_or(connect_default_config.device_type);
         let initial_volume = initial_volume.unwrap_or(connect_default_config.initial_volume);
+        let disable_volume = matches!(mixer_config.volume_ctrl, VolumeCtrl::Fixed);
         let volume_steps = volume_steps.unwrap_or(connect_default_config.volume_steps);
 
         ConnectConfig {
@@ -1518,8 +1532,8 @@ async fn get_setup() -> Setup {
             device_type,
             is_group,
             initial_volume,
+            disable_volume,
             volume_steps,
-            ..connect_default_config
         }
     };
 
@@ -1819,6 +1833,7 @@ async fn get_setup() -> Setup {
             normalisation_knee_db,
             ditherer,
             position_update_interval: None,
+            local_file_directories,
         }
     };
 
